@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Galaxies: gas clouds to galaxy structures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--ink:#fff;--btn:rgba(255,255,255,.12);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;font-family:Caveat,"Segoe Print","Bradley Hand","Comic Sans MS",cursive}
+canvas{display:block;width:100%;height:100%}
+#top{position:fixed;left:12px;top:calc(env(safe-area-inset-top,0px) + 10px);display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
+#replay{pointer-events:auto;padding:6px 12px;border:1px solid rgba(255,255,255,.4);border-radius:20px;background:var(--btn);color:var(--ink);font:600 13px system-ui,sans-serif;cursor:pointer}
+#replay:focus-visible{outline:2px solid #8fb8ff;outline-offset:2px}
+#hud{color:var(--ink);font-weight:700;font-size:22px;line-height:1.1;text-shadow:0 0 6px #000,0 0 3px #000}
+#hud small{display:block;font-size:18px;opacity:.85}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Animation of gas clouds collapsing into twelve different galaxies"></canvas>
+<div id="top"><button id="replay" type="button">Replay</button><div id="hud"><span id="ph"></span><small id="ag"></small></div></div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),ph=document.getElementById('ph'),ag=document.getElementById('ag');
+let W,H,DPR,speed=1,elapsed=0,lastFrame=performance.now();
+const TAU=Math.PI*2,sm=x=>{x=x<0?0:x>1?1:x;return x*x*(3-2*x)};
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd=rng(5);
+function gauss(){let u=0;while(!u)u=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*rnd())}
+try{document.fonts.load('700 20px Caveat')}catch(e){}
+function resize(){DPR=Math.min(devicePixelRatio||1,1.5);W=innerWidth;H=innerHeight;cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR)}
+addEventListener('resize',resize);resize();
+
+const PAL={blue:[[150,185,255],[255,255,255],[255,215,170],[255,130,190]],warm:[[255,200,140],[255,230,190],[255,150,100],[200,170,255]],orange:[[255,150,80],[255,210,150],[255,100,60],[255,240,200]],gold:[[255,210,130],[255,235,180],[255,190,110]],yellow:[[255,225,150],[255,245,210],[255,210,130]],burst:[[130,190,255],[255,80,70],[220,235,255],[255,160,90]],cena:[[255,230,190],[255,170,100],[200,215,255],[255,255,255]],pink:[[255,130,190],[190,150,255],[255,230,225],[130,190,255]],blue2:[[150,150,255],[255,255,255],[190,150,255],[130,200,255]],cream:[[255,210,200],[255,235,215],[200,170,255],[170,200,255]]};
+const SPC={};
+function spr(c){const k=c.join();if(SPC[k])return SPC[k];const s=document.createElement('canvas');s.width=s.height=32;const g=s.getContext('2d'),r=g.createRadialGradient(16,16,0,16,16,16);
+ r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.3,`rgba(${c[0]},${c[1]},${c[2]},.8)`);r.addColorStop(1,`rgba(${c[0]},${c[1]},${c[2]},0)`);g.fillStyle=r;g.fillRect(0,0,32,32);return SPC[k]=s}
+
+// x,y = position in the 640x1087 collage; R = size; tau = tilt; phi = rotation; d = birth delay (s)
+const GAL=[
+{n:'The Black Eye',m:'M64',x:135,y:185,R:62,tau:.75,phi:-.25,arms:2,c:2.6,bf:.28,pal:'blue',w:.55,d:0},
+{n:'NGC 4945',m:'',x:285,y:95,R:112,tau:1.42,phi:.62,arms:2,c:2.2,bf:.25,zt:.02,pal:'warm',w:-.5,d:1},
+{n:'The Circinus Galaxy',m:'',x:520,y:150,R:64,tau:.9,phi:.7,arms:2,c:1.5,bf:.3,irr:1.8,pal:'orange',w:.5,d:2.5},
+{n:"Bode's Galaxy",m:'M81',x:385,y:305,R:80,tau:.95,phi:-.15,arms:2,c:2.4,bf:.2,pal:'blue',w:-.45,d:.5},
+{n:'Maffei 2',m:'',x:80,y:395,R:44,tau:.9,phi:.9,arms:0,pal:'gold',w:.4,d:3},
+{n:'The Cigar Galaxy',m:'M82',x:545,y:445,R:52,tau:1.45,phi:-.12,arms:2,c:1.5,bf:.3,plume:1,pal:'burst',w:.5,d:1.5},
+{n:'Centaurus A',m:'',x:320,y:520,R:95,tau:1.25,phi:-.35,arms:0,band:1,jets:1,pal:'cena',w:.3,d:0},
+{n:'Maffei 1',m:'',x:78,y:550,R:30,tau:.5,phi:0,arms:0,pal:'yellow',w:.3,d:3.5},
+{n:'The Southern Pinwheel',m:'M83',x:130,y:750,R:72,tau:.3,phi:0,arms:3,c:2.8,bf:.2,pal:'pink',w:.5,d:2},
+{n:'The Sculptor',m:'NGC 253',x:460,y:715,R:92,tau:1.38,phi:-.45,arms:2,c:2.2,bf:.25,zt:.02,pal:'warm',w:-.5,d:1},
+{n:"The Cat's Eye",m:'M94',x:145,y:985,R:74,tau:.35,phi:0,arms:2,c:1.8,bf:.2,ring:1,pal:'blue2',w:-.5,d:.7},
+{n:'The Hidden Galaxy',m:'IC 342',x:500,y:945,R:96,tau:.4,phi:.3,arms:3,c:2.2,bf:.2,pal:'cream',w:.45,d:2.8}];
+const NP=innerWidth<700?420:640;
+GAL.forEach(G=>{
+ G.pal=PAL[G.pal];G.spr=G.pal.map(spr);G.ps=[];G.cp=Math.cos(G.phi);G.sn=Math.sin(G.phi);G.ct=Math.cos(G.tau);G.st=Math.sin(G.tau);const pl=G.pal.length;
+ for(let i=0;i<NP;i++){
+  const u=rnd();let r1,tb=rnd()*TAU,g=gauss(),z1,ci;
+  if(!G.arms){r1=Math.abs(gauss())*.42;if(r1>1)r1=rnd();g=0;z1=gauss()*.3;ci=rnd()<.55?1:Math.floor(rnd()*pl);if(G.band&&u<.3){r1=rnd()*.85;z1=gauss()*.02;ci=1}}
+  else if(u<G.bf){r1=Math.abs(gauss())*.16;g=0;z1=gauss()*.08;ci=1}
+  else{r1=Math.min(1.05,-Math.log(1-rnd()*.97)*.3);tb=Math.floor(rnd()*G.arms)*TAU/G.arms+G.c*Math.log(1+r1/.12);z1=gauss()*(G.zt||.03);
+   if(rnd()<.16){tb=rnd()*TAU;g=0}if(G.ring&&rnd()<.4)r1=.55+gauss()*.05;ci=r1<.3?(rnd()<.6?1:2):(rnd()<.65?0:3)}
+  if((G.jets||G.plume)&&rnd()<(G.jets?.1:.22)){const sg=rnd()<.5?-1:1;r1=Math.abs(gauss())*(G.jets?.04:.12);z1=sg*(.3+rnd()*(G.jets?1.3:.9));g=0;ci=G.jets?(rnd()<.5?2:1):(rnd()<.6?1:0)}
+  const gx=gauss()*1.3,gy=gauss()*1.3;
+  G.ps.push({r0:Math.hypot(gx,gy),th0:Math.atan2(gy,gx),z0:gauss()*1.1,r1,tb,g,z1,ci,b:.45+rnd()*.55,s:rnd()});
+ }});
+const BG=[];for(let i=0;i<220;i++)BG.push({x:rnd(),y:rnd(),r:rnd()*1.2+.3,p:rnd()*6.28});
+const HZ=[];const HC=[[110,80,220],[70,110,255],[200,90,170]];for(let i=0;i<40;i++)HZ.push({x:rnd(),y:rnd(),r:.15+rnd()*.25,c:spr(HC[i%3]),p:rnd()*6.28});
+
+function frame(now){
+ const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));
+ lastFrame=now;elapsed+=dt*speed;const t=elapsed;
+ ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+ const port=H>W*1.05,SW=port?640:1087,SH=port?1087:640,k=Math.min(W/SW,H/SH),ox=(W-SW*k)/2,oy=(H-SH*k)/2;
+ const T=(x,y)=>port?[ox+x*k,oy+y*k]:[ox+y*k,oy+x*k];
+ BG.forEach(s=>{ctx.globalAlpha=.25+.45*Math.sin(t*1.4+s.p)**2;ctx.fillStyle='#fff';ctx.fillRect(s.x*W,s.y*H,s.r,s.r)});
+ ctx.globalCompositeOperation='lighter';
+ const hz=.09*(1-sm((t-5)/10));
+ if(hz>.002)HZ.forEach(h=>{const s=h.r*Math.max(W,H)*2.2;ctx.globalAlpha=hz;ctx.drawImage(h.c,(h.x+.02*Math.sin(t*.3+h.p))*W-s/2,(h.y+.02*Math.cos(t*.25+h.p))*H-s/2,s,s)});
+ const sk=Math.max(2.2,3*k);
+ GAL.forEach(G=>{
+  const [cx,cy]=T(G.x,G.y),Rk=G.R*k,e=sm((t-3-G.d)/8),m=sm((t-8-G.d)/8),ig=sm((t-7-G.d)/6),sc=(.28+(1-m)*1.1)*(G.irr||1);
+  for(let i=0;i<G.ps.length;i++){
+   const p=G.ps[i],r=p.r0+(p.r1-p.r0)*e,a=p.tb+p.g*sc+(p.th0-p.tb)*(1-e)+G.w*(1-.07*r)*t,z=p.z0+(p.z1-p.z0)*e;
+   const x=r*Math.cos(a),y=r*Math.sin(a),Y=y*G.ct-z*G.st,sz=sk*(1+(1-ig)*1.6)*(.8+p.s*.8);
+   ctx.globalAlpha=(.18+.82*ig)*p.b;
+   ctx.drawImage(G.spr[p.ci],cx+(x*G.cp-Y*G.sn)*Rk-sz/2,cy+(x*G.sn+Y*G.cp)*Rk-sz/2,sz,sz);
+  }
+  ctx.globalAlpha=.16*ig*e;let s=Rk*2.8;ctx.drawImage(G.spr[0],cx-s/2,cy-s/2,s,s);
+  ctx.globalAlpha=Math.min(1,.9*e*ig);s=Rk*.8;ctx.drawImage(G.spr[1],cx-s/2,cy-s/2,s,s);
+ });
+ ctx.globalCompositeOperation='source-over';
+ const fs=Math.max(13,Math.min(24,20*k*1.2));ctx.font=`700 ${fs}px Caveat,"Segoe Print","Bradley Hand","Comic Sans MS",cursive`;ctx.textAlign='center';ctx.shadowColor='#000';ctx.shadowBlur=6;ctx.fillStyle='#fff';
+ GAL.forEach(G=>{const al=sm((t-15-G.d)/2);if(al<=0)return;const [cx,cy]=T(G.x,G.y),y=cy+G.R*k*.62+fs;ctx.globalAlpha=al;ctx.fillText(G.n,cx,y);if(G.m)ctx.fillText(G.m,cx,y+fs*1.05)});
+ ctx.shadowBlur=0;ctx.globalAlpha=1;
+ ph.textContent=t<3?'Cold clouds of gas and dust':t<8?'Gravity pulls the gas together':t<14?'Spinning discs and spiral arms form':t<20?'Stars ignite':'Galaxies today, still rotating';
+ ag.textContent='Illustrative sequence · not to scale';
+ requestAnimationFrame(frame);
+}
+document.getElementById('replay').addEventListener('click',()=>{elapsed=0;lastFrame=performance.now()});
+
+requestAnimationFrame(frame);
+addEventListener('message',e=>{const d=e.data;if(e.source===parent&&d&&d.type==='eyewitness-speed'&&Number.isFinite(d.speed))speed=Math.max(.25,Math.min(2,d.speed))});
+</script>
+</body>
+</html>

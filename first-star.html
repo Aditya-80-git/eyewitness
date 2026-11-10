@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The first star: from gas cloud to a blue star</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000207;--ink:#fff;--btn:rgba(255,255,255,.12);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;font-family:Caveat,"Segoe Print","Bradley Hand","Comic Sans MS",cursive}
+canvas{display:block;width:100%;height:100%}
+#top{position:fixed;left:12px;top:calc(env(safe-area-inset-top,0px) + 10px);display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
+#btns{display:flex;gap:6px;pointer-events:auto}
+#btns button{padding:6px 12px;border:1px solid rgba(255,255,255,.4);border-radius:20px;background:var(--btn);color:var(--ink);font:600 13px system-ui,sans-serif;cursor:pointer}
+#btns button:focus-visible{outline:2px solid #8fb8ff;outline-offset:2px}
+#hud{color:var(--ink);font-weight:700;font-size:24px;line-height:1.1;text-shadow:0 0 6px #000,0 0 3px #000;max-width:92vw}
+#hud small{display:block;font-size:18px;opacity:.85}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Animation of a gas cloud collapsing and igniting into the first blue star"></canvas>
+<div id="top"><div id="btns"><button id="replay" type="button">Replay</button><button id="skip" type="button">Skip to today</button></div><div id="hud"><span id="ph"></span><small id="ag"></small></div></div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),ph=document.getElementById('ph'),ag=document.getElementById('ag');
+let W,H,DPR,unit,t0=performance.now(),speed=1;
+const TAU=Math.PI*2,sm=x=>{x=x<0?0:x>1?1:x;return x*x*(3-2*x)};
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd=rng(21);
+function gauss(){let u=0;while(!u)u=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*rnd())}
+function resize(){DPR=Math.min(devicePixelRatio||1,1.5);W=innerWidth;H=innerHeight;unit=Math.max(1,Math.min(W,H)/520);cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR)}
+addEventListener('resize',resize);resize();
+
+const COL=[[90,80,200],[200,90,170],[255,80,50],[255,160,70],[255,245,230],[110,180,255],[50,90,255],[200,235,255]];
+function mkSprite(c,white){const s=document.createElement('canvas');s.width=s.height=32;const g=s.getContext('2d'),r=g.createRadialGradient(16,16,0,16,16,16);
+ r.addColorStop(0,white?`rgba(${c[0]},${c[1]},${c[2]},.9)`:'rgba(255,255,255,1)');r.addColorStop(.3,`rgba(${c[0]},${c[1]},${c[2]},.8)`);r.addColorStop(1,`rgba(${c[0]},${c[1]},${c[2]},0)`);g.fillStyle=r;g.fillRect(0,0,32,32);return s}
+const SP=COL.map(c=>mkSprite(c,0)),DK=mkSprite([10,30,130],1);
+
+const mob=innerWidth<700,N=mob?3200:5000,GN=mob?420:650,TN=mob?42:64,SN=mob?140:220;
+// gas grains: start in the cloud (r0,lon0,lat), fall in to the star (r1)
+const P=[];for(let i=0;i<N;i++)P.push({r0:.4+Math.abs(gauss())*1.5,lon0:rnd()*TAU,lat:Math.asin(2*rnd()-1),r1:rnd()<.85?1.02+rnd()*.12:rnd()*.7,b:.4+rnd()*.6,j:gauss()*.8,ci:rnd()<.5,s:rnd()});
+const GR=[];for(let i=0;i<GN;i++)GR.push({lon:rnd()*TAU,lat:Math.asin(2*rnd()-1)*.95,s:rnd(),ph:rnd()*6.28,dk:rnd()<.35});
+const TD=[];for(let i=0;i<TN;i++)TD.push({phi:rnd()*TAU,L:.25+rnd()*.7,curl:(rnd()-.5)*2.2,sw:.15+rnd()*.35,ph:rnd()*6.28,ph2:rnd()*6.28,w:.8+rnd()*1.6,a:.35+rnd()*.5,v:.05+rnd()*.08,off:rnd()});
+const LP=[];for(let i=0;i<5;i++)LP.push({phi:rnd()*TAU,sp:.1+rnd()*.12,ph:rnd()*8,per:5+rnd()*4});
+const SK=[];for(let i=0;i<SN;i++)SK.push({r:rnd()*1.4,a:rnd()*TAU,v:.03+rnd()*.08,ph:rnd()*6.28,s:1+rnd()*1.5});
+
+function frame(now){
+ const t=(now-t0)/1000*speed;
+ ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.fillStyle='#000207';ctx.fillRect(0,0,W,H);
+ const S=Math.min(W*.22,H*.27),cx=W/2,cy=H*.5,sk=Math.max(1.8,S/90);
+ const e=sm((t-3)/7.5),ig=sm((t-10.6)/1.6),Rb=sm((t-9.8)/2.2),fl=Math.exp(-((t-10.8)**2)/.25),pul=1+.04*Math.sin(t*1.7);
+ const dr=(sp,s,a)=>{ctx.globalAlpha=a;ctx.drawImage(sp,cx-s,cy-s,s*2,s*2)};
+ ctx.globalCompositeOperation='lighter';
+ // glow that lights up the dark space
+ dr(SP[6],S*7*pul,.25*ig);dr(SP[5],S*3.4*pul,.4*ig);dr(SP[7],S*1.7,.25*ig);
+ // glowing protostar before ignition
+ const pre=sm((t-4)/5)*(1-ig);dr(SP[2],S*(.5+1.3*e),.55*pre);dr(SP[3],S*(.25+.7*e),.7*pre);
+ if(t>8.5)dr(SP[4],S*(.15+.3*sm((t-8.5)/2)),.8*sm((t-8.5)/2)*(1-ig));
+ // collapsing gas: cold indigo, then red, orange, white, then blue
+ for(let i=0;i<P.length;i++){
+  const p=P[i],rc=p.r0+(p.r1-p.r0)*e,r=rc+Math.max(0,t-11)*.6,lon=p.lon0+3*(1/(.3+rc)-1/(.3+p.r0))+.1*t;
+  const h=t+p.j,idx=h<4?(p.ci?0:1):h<7?(p.ci?1:2):h<9.5?(p.ci?2:3):h<11?(p.ci?3:4):(p.ci?5:6);
+  const al=(.15+.6*e)*p.b*(1-sm((t-11)/3.5));if(al<.01)continue;
+  const sz=sk*(1+(1-e))*(.8+p.s*.8),x=r*Math.cos(p.lat)*Math.sin(lon),y=r*Math.sin(p.lat);
+  ctx.globalAlpha=al;ctx.drawImage(SP[idx],cx+x*S-sz/2,cy+y*S-sz/2,sz,sz);
+ }
+ const Rd=S*Rb*(1+.008*Math.sin(t*2.3));
+ if(Rb>.01){
+  // plasma tendrils streaming off the star
+  TD.forEach(f=>{
+   const phi=f.phi+.05*Math.sin(t*.3+f.ph),Lh=f.L*(.6+.4*Math.sin(t*.7+f.ph2))*ig,pts=[];
+   for(let j=0;j<=12;j++){const s=j/12,rr=1+Lh*Math.pow(s,.9),an=phi+f.curl*s*s+f.sw*Math.sin(t*.9+f.ph+s*5)*s;pts.push([cx+Math.cos(an)*rr*Rd,cy+Math.sin(an)*rr*Rd])}
+   const a0=pts[0],a1=pts[12],g=ctx.createLinearGradient(a0[0],a0[1],a1[0],a1[1]);g.addColorStop(0,`rgba(140,210,255,${f.a*ig})`);g.addColorStop(1,'rgba(60,120,255,0)');
+   ctx.globalAlpha=1;ctx.strokeStyle=g;ctx.lineWidth=f.w*unit;ctx.lineCap='round';ctx.beginPath();pts.forEach((q,j)=>j?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.stroke();
+   for(let b=0;b<3;b++){const s=(t*f.v+f.off+b/3)%1,j=Math.min(11,Math.floor(s*12)),q=pts[j],bs=5*unit;ctx.globalAlpha=(1-s)*ig*.9;ctx.drawImage(SP[7],q[0]-bs/2,q[1]-bs/2,bs,bs)}
+  });
+  // arching solar-flare loops
+  LP.forEach(l=>{const q=((t+l.ph)%l.per)/l.per,a=Math.sin(Math.PI*q)*ig;if(a<.02)return;
+   const phi=l.phi+Math.floor((t+l.ph)/l.per)*1.7,hh=.3+.5*Math.sin(Math.PI*q),A=phi-l.sp,B=phi+l.sp,C=1+2*hh;
+   [[`rgba(90,170,255,${a*.5})`,6],[`rgba(220,245,255,${a*.9})`,1.6]].forEach(([c,w])=>{ctx.globalAlpha=1;ctx.strokeStyle=c;ctx.lineWidth=w*unit;ctx.beginPath();ctx.moveTo(cx+Math.cos(A)*Rd,cy+Math.sin(A)*Rd);ctx.quadraticCurveTo(cx+Math.cos(phi)*Rd*C,cy+Math.sin(phi)*Rd*C,cx+Math.cos(B)*Rd,cy+Math.sin(B)*Rd);ctx.stroke()})});
+  // the star body
+  ctx.globalCompositeOperation='source-over';ctx.globalAlpha=Math.min(1,ig*1.3);
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,Rd,0,TAU);ctx.clip();
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,Rd);g.addColorStop(0,'#1a3fd0');g.addColorStop(.7,'#2a63ff');g.addColorStop(.92,'#6fb0ff');g.addColorStop(1,'#e8f6ff');ctx.fillStyle=g;ctx.fillRect(cx-Rd,cy-Rd,Rd*2,Rd*2);
+  const ca=Math.cos(.3),sa=Math.sin(.3),pr=gr=>{const lon=gr.lon+(.15-.05*Math.pow(Math.sin(gr.lat),2))*t,x0=Math.cos(gr.lat)*Math.sin(lon),y0=Math.sin(gr.lat),z=Math.cos(gr.lat)*Math.cos(lon);return[x0*ca-y0*sa,x0*sa+y0*ca,z]};
+  GR.forEach(gr=>{if(!gr.dk)return;const [x,y,z]=pr(gr);if(z<=0)return;const s=Rd*(.16+.2*gr.s)*(.5+.5*z);ctx.globalAlpha=.3*ig*z;ctx.drawImage(DK,cx+x*Rd-s/2,cy+y*Rd-s/2,s,s)});
+  ctx.globalCompositeOperation='lighter';
+  GR.forEach(gr=>{if(gr.dk)return;const [x,y,z]=pr(gr);if(z<=0)return;const s=Rd*(.07+.1*gr.s)*(.5+.5*z);ctx.globalAlpha=(.25+.45*Math.pow(Math.sin(t*2+gr.ph),2))*z*ig;ctx.drawImage(SP[gr.s>.5?7:5],cx+x*Rd-s/2,cy+y*Rd-s/2,s,s)});
+  ctx.restore();ctx.globalCompositeOperation='lighter';
+  // bright glowing rim
+  const rg=ctx.createRadialGradient(cx,cy,Rd*.85,cx,cy,Rd*1.1);rg.addColorStop(0,'rgba(90,160,255,0)');rg.addColorStop(.5,'rgba(140,210,255,.55)');rg.addColorStop(.78,'rgba(235,248,255,.95)');rg.addColorStop(1,'rgba(80,150,255,0)');
+  ctx.globalAlpha=ig;ctx.fillStyle=rg;ctx.beginPath();ctx.arc(cx,cy,Rd*1.1,0,TAU);ctx.fill();
+  // sparkling stellar wind
+  SK.forEach(p=>{const rr=1.05+((p.r+p.v*t)%1.4),a=p.a+.05*t/rr,al=(1-(rr-1.05)/1.4)*(.4+.6*Math.pow(Math.sin(t*3+p.ph),2))*ig,s=p.s*unit*2.2;if(al<.02)return;ctx.globalAlpha=al;ctx.drawImage(SP[7],cx+Math.cos(a)*rr*Rd-s/2,cy+Math.sin(a)*rr*Rd-s/2,s,s)});
+ }
+ // ignition flash + shock wave
+ if(fl>.02){dr(SP[4],S*6*fl,.9*fl)}
+ const q=t-10.8;if(q>0&&q<4){ctx.globalAlpha=.6*(1-q/4);ctx.strokeStyle='rgba(150,215,255,1)';ctx.lineWidth=3*unit;ctx.beginPath();ctx.arc(cx,cy,S*(1+q*2.2),0,TAU);ctx.stroke()}
+ ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
+ ph.textContent=t<4?'1. A dark, cold cloud of hydrogen and helium':t<9?'2. Gravity squeezes the cloud; it spins and heats up':t<10.8?'3. A glowing protostar forms at the centre':t<14?'4. Fusion ignites: the first star is born!':'Today: a hot, bright blue star, boiling with plasma';
+ ag.textContent=t<10.8?'Collapse time: '+Math.round(t/10.8*100)+' thousand years':'Star age: '+Math.max(0,(t-10.8)*.12).toFixed(1)+' million years';
+ requestAnimationFrame(frame);
+}
+document.getElementById('replay').addEventListener('click',()=>{t0=performance.now()});
+document.getElementById('skip').addEventListener('click',()=>{t0=performance.now()-16000/speed});
+requestAnimationFrame(frame);
+addEventListener('message',e=>{const d=e.data;if(e.source===parent&&d&&d.type==='eyewitness-speed'&&Number.isFinite(d.speed))speed=Math.max(.25,Math.min(2,d.speed))});
+</script>
+</body>
+</html>

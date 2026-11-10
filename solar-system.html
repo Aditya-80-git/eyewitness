@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Solar system: from gas cloud to today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#000;--ink:#fff;--btn:rgba(255,255,255,.12);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;font-family:Caveat,"Segoe Print","Bradley Hand","Comic Sans MS",cursive}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#top{position:fixed;left:12px;top:calc(env(safe-area-inset-top,0px) + 10px);display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
+#btns{display:flex;gap:6px;pointer-events:auto}
+#btns button{padding:6px 12px;border:1px solid rgba(255,255,255,.4);border-radius:20px;background:var(--btn);color:var(--ink);font:600 13px system-ui,sans-serif;cursor:pointer}
+#btns button:focus-visible{outline:2px solid #8fb8ff;outline-offset:2px}
+#hud{color:var(--ink);font-weight:700;font-size:24px;line-height:1.1;text-shadow:0 0 6px #000,0 0 3px #000}
+#hud small{display:block;font-size:18px;opacity:.85}
+#hint{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);text-align:center;color:var(--ink);font-weight:700;font-size:18px;opacity:.7;text-shadow:0 0 6px #000;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="Animation of the solar system forming from a gas cloud into the Sun and eight planets"></canvas>
+<div id="top"><div id="btns"><button id="replay" type="button">Replay</button><button id="skip" type="button">Skip to today</button></div><div id="hud"><span id="ph"></span><small id="ag"></small></div></div>
+<div id="hint">Drag to tilt the view. Sizes and distances are scaled for viewing.</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),ph=document.getElementById('ph'),ag=document.getElementById('ag');
+let W,H,DPR,unit,speed=1,elapsed=0,lastFrame=performance.now(),tiltB=1.0;
+const TAU=Math.PI*2,sm=x=>{x=x<0?0:x>1?1:x;return x*x*(3-2*x)};
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd=rng(3);
+function gauss(){let u=0;while(!u)u=rnd();return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*rnd())}
+try{document.fonts.load('700 20px Caveat')}catch(e){}
+function resize(){DPR=Math.min(devicePixelRatio||1,1.5);W=innerWidth;H=innerHeight;unit=Math.max(1,Math.min(W,H)/520);cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR)}
+addEventListener('resize',resize);resize();
+
+const COL=[[210,150,100],[150,120,210],[255,230,190],[130,170,255],[255,170,90],[255,215,120],[255,90,40],[255,200,100],[200,200,215],[160,230,255]];
+const SP=COL.map(c=>{const s=document.createElement('canvas');s.width=s.height=32;const g=s.getContext('2d'),r=g.createRadialGradient(16,16,0,16,16,16);
+ r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.3,`rgba(${c[0]},${c[1]},${c[2]},.8)`);r.addColorStop(1,`rgba(${c[0]},${c[1]},${c[2]},0)`);g.fillStyle=r;g.fillRect(0,0,32,32);return s});
+const ORB=[.11,.17,.23,.30,.46,.60,.75,.90],PS=[3,5,5.4,4,12,10,7.5,7],TK=[18,17.5,17,16.5,14,14.8,15.6,16];
+const NM=['Mercury','Venus','Earth','Mars','Jupiter','Saturn','Uranus','Neptune'];
+const PC=[['#d8d0c4','#a39a8e','#4d463e'],['#fff0c4','#d9b878','#6e5326'],['#9fd0ff','#2f6fc8','#10285a'],['#ff9a70','#c4552f','#4a1a0c'],['#f3d9b5','#c99a68','#5c3a1e'],['#fff0c8','#dcc48a','#6b5628'],['#d4fbff','#7fd0da','#2a6a74'],['#9fb4ff','#3d5ad6','#141f66']];
+const om=r=>.9*Math.pow(r/.23,-1.5),TH=ORB.map(()=>rnd()*TAU);
+const wrap=d=>((d+Math.PI)%TAU+TAU)%TAU-Math.PI;
+
+// dust and gas: each grain starts in the cloud (r0,th0,z0) and ends in the disc / a planet / a belt
+const N=innerWidth<700?3800:5500,P=[];
+for(let i=0;i<N+60;i++){
+ const big=i>=N,u=rnd();let r1,z1,k,ci;
+ if(big){k=-6;r1=.1+rnd()*.6;z1=0;ci=rnd()<.5?1:0}
+ else if(u<.14){k=-4;r1=rnd()*.035;z1=gauss()*.01;ci=rnd()<.5?4:5}
+ else if(u<.19){k=-2;r1=.38+gauss()*.025;z1=gauss()*.012;ci=8}
+ else if(u<.25){k=-3;r1=1+gauss()*.07;z1=gauss()*.03;ci=3}
+ else{r1=.06+Math.min(.9,-Math.log(1-rnd()*.97)*.28);z1=gauss()*.012;ci=r1<.2?(rnd()<.5?4:5):r1<.6?(rnd()<.5?2:0):(rnd()<.5?3:1);
+  if(u<.45)k=-5;else{let b=0,bd=9;ORB.forEach((o,j)=>{const d=Math.abs(o-r1);if(d<bd){bd=d;b=j}});k=b}}
+ const gx=gauss()*.5,gy=gauss()*.5;
+ P.push({r0:Math.hypot(gx,gy),th0:Math.atan2(gy,gx),z0:gauss()*.45,r1,z1,k,ci,big,b:.4+rnd()*.6,s:rnd(),tf:rnd()*4,sz:.15+rnd()*.2,w:om(Math.max(.08,k>=0?ORB[k]:r1))});
+}
+const IM=[];for(let i=0;i<10;i++)IM.push({k:Math.floor(rnd()*8),t0:21+rnd()*7,a:rnd()*TAU});
+const COM=[{a:.95,e:.75,rot:2.4,sp:.28,ph:1},{a:.8,e:.7,rot:-.6,sp:.34,ph:3.5}];
+const BG=[];for(let i=0;i<260;i++)BG.push({x:rnd(),y:rnd(),r:rnd()*1.3+.3,p:rnd()*6.28});
+
+let dragY=null;
+cv.addEventListener('pointerdown',e=>{dragY=e.clientY;cv.setPointerCapture(e.pointerId);document.getElementById('hint').style.opacity=0});
+cv.addEventListener('pointermove',e=>{if(dragY===null)return;tiltB=Math.max(.15,Math.min(1.4,tiltB+(e.clientY-dragY)*.006));dragY=e.clientY});
+['pointerup','pointercancel'].forEach(ev=>cv.addEventListener(ev,()=>{dragY=null}));
+
+function ring(px,py,r,front,al){ctx.globalAlpha=al;ctx.strokeStyle='rgba(235,215,170,.85)';ctx.lineWidth=Math.max(1,r*.22);ctx.beginPath();ctx.ellipse(px,py,r*2.1,r*.8,-.3,front?0:Math.PI,front?Math.PI:TAU);ctx.stroke();
+ ctx.lineWidth=Math.max(.8,r*.1);ctx.strokeStyle='rgba(235,215,170,.5)';ctx.beginPath();ctx.ellipse(px,py,r*1.6,r*.62,-.3,front?0:Math.PI,front?Math.PI:TAU);ctx.stroke()}
+function planet(k,px,py,g,sx,sy){
+ const r=PS[k]*unit*g;if(r<.6)return;let dx=sx-px,dy=sy-py;const dl=Math.hypot(dx,dy)||1;dx/=dl;dy/=dl;
+ const gr=ctx.createRadialGradient(px+dx*r*.4,py+dy*r*.4,r*.1,px,py,r);gr.addColorStop(0,PC[k][0]);gr.addColorStop(.55,PC[k][1]);gr.addColorStop(1,PC[k][2]);
+ const al=sm((g-.6)/.4);
+ if(k===5)ring(px,py,r,0,al);
+ ctx.globalAlpha=1;ctx.fillStyle=gr;ctx.beginPath();ctx.arc(px,py,r,0,TAU);ctx.fill();
+ if(k===4){ctx.save();ctx.beginPath();ctx.arc(px,py,r,0,TAU);ctx.clip();ctx.fillStyle='rgba(120,70,40,.32)';[-.5,-.1,.3].forEach(o=>ctx.fillRect(px-r,py+o*r,2*r,r*.18));ctx.restore()}
+ if(k===5)ring(px,py,r,1,al);
+ if(k===6){ctx.globalAlpha=al*.6;ctx.strokeStyle='rgba(200,240,245,.8)';ctx.lineWidth=Math.max(.8,r*.08);ctx.beginPath();ctx.ellipse(px,py,r*.6,r*1.9,.35,0,TAU);ctx.stroke()}
+ ctx.globalAlpha=1;
+}
+
+function frame(now){
+ const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));
+ lastFrame=now;elapsed+=dt*speed;const t=elapsed;
+ ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+ // faint Milky Way band + stars
+ ctx.save();ctx.translate(W/2,H/2);ctx.rotate(-.35);const mg=ctx.createLinearGradient(0,-H*.35,0,H*.35);mg.addColorStop(0,'rgba(90,110,170,0)');mg.addColorStop(.5,'rgba(110,120,190,.13)');mg.addColorStop(1,'rgba(90,110,170,0)');ctx.fillStyle=mg;ctx.fillRect(-W,-H*.35,W*2,H*.7);ctx.restore();
+ BG.forEach(s=>{ctx.globalAlpha=.25+.45*Math.sin(t*1.4+s.p)**2;ctx.fillStyle='#fff';ctx.fillRect(s.x*W,s.y*H,s.r,s.r)});ctx.globalAlpha=1;
+ const S=Math.min(W*.47,H*.6),cx=W/2,cy=H*.5,tilt=tiltB,ct=Math.cos(tilt),st=Math.sin(tilt),sk=Math.max(2,S/120);
+ const e=sm((t-2)/8),sw=sm((t-12)/6);
+ // orbit paths + frost line
+ ctx.lineWidth=1;
+ ORB.forEach((o,k)=>{const a=.22*sm((t-TK[k])/3);if(a<.005)return;ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.beginPath();ctx.ellipse(cx,cy,o*S,o*S*ct,0,0,TAU);ctx.stroke()});
+ const fa=sm((t-12)/2)*(1-sm((t-23)/2));
+ if(fa>.01){ctx.setLineDash([6,6]);ctx.strokeStyle=`rgba(150,210,255,${.5*fa})`;ctx.beginPath();ctx.ellipse(cx,cy,.38*S,.38*S*ct,0,0,TAU);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=`rgba(190,230,255,${fa})`;ctx.font=`700 ${Math.max(15,S/22)}px Caveat,cursive`;ctx.textAlign='center';ctx.fillText('Frost line: rock inside, ice and gas outside',cx,cy+.38*S*ct+Math.max(15,S/22)+4)}
+ // dust and gas grains
+ ctx.globalCompositeOperation='lighter';
+ for(let i=0;i<P.length;i++){
+  const p=P[i];let rt=p.r1,a,agg=0;
+  if(p.k>=0)rt=p.r1+(ORB[p.k]-p.r1)*sw;else if(p.k===-5)rt=p.r1+Math.max(0,t-22)*.25;
+  const r=p.r0+(rt-p.r0)*e,z=p.z0+(p.z1-p.z0)*e;
+  if(p.k>=0){agg=sm((t-16-p.tf)/6);a=TH[p.k]+p.w*t+wrap(p.th0-TH[p.k])*(1-agg)}else a=p.th0+p.w*t;
+  const x=r*Math.cos(a),y=r*Math.sin(a);let sz,al;
+  if(p.big){sz=p.sz*S*(1.6-.6*e);al=.07*(1-sm((t-5)/7))}
+  else{sz=sk*(1+(1-e)*1.6)*(.8+p.s*.8);al=(.25+.75*e)*p.b;
+   if(p.k>=0){sz*=1-.6*agg;al*=1-sm((agg-.85)/.15)}
+   if(p.k===-5)al*=1-sm((t-22-p.r1*5)/4)}
+  if(al<.01)continue;
+  ctx.globalAlpha=al;ctx.drawImage(SP[p.ci],cx+x*S-sz/2,cy+(y*ct-z*st)*S-sz/2,sz,sz);
+ }
+ // the Sun ignites
+ const ig=sm((t-10)/1.5),fl=Math.exp(-((t-10.4)**2)/.6),pre=sm(t/8)*(1-ig);
+ let s=S*(.07+.1*pre);ctx.globalAlpha=.7*pre;ctx.drawImage(SP[6],cx-s,cy-s,s*2,s*2);
+ s=S*(.2+.25*fl+.012*Math.sin(t*3));ctx.globalAlpha=.55*ig;ctx.drawImage(SP[7],cx-s,cy-s,s*2,s*2);
+ if(fl>.02){s=S*.9*fl;ctx.globalAlpha=.6*fl;ctx.drawImage(SP[2],cx-s,cy-s,s*2,s*2)}
+ ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
+ // planets
+ const PP=ORB.map((o,k)=>{const g=sm((t-TK[k])/9),a=TH[k]+om(o)*t,x=o*Math.cos(a),y=o*Math.sin(a);return{k,g,y,px:cx+x*S,py:cy+y*S*ct}});
+ ctx.globalCompositeOperation='lighter';
+ PP.forEach(q=>{if(q.g>.02&&q.g<1){const gs=PS[q.k]*unit*5;ctx.globalAlpha=.5*(1-q.g);ctx.drawImage(SP[5],q.px-gs,q.py-gs,gs*2,gs*2)}});
+ ctx.globalCompositeOperation='source-over';
+ const sun=()=>{if(ig<.01)return;const rs=S*.05*ig,gr=ctx.createRadialGradient(cx,cy,0,cx,cy,rs);gr.addColorStop(0,'#fffbe0');gr.addColorStop(.6,'#ffd45c');gr.addColorStop(1,'#ff8a2a');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(cx,cy,rs,0,TAU);ctx.fill()};
+ PP.filter(q=>q.y<0).forEach(q=>planet(q.k,q.px,q.py,q.g,cx,cy));
+ sun();
+ PP.filter(q=>q.y>=0).forEach(q=>planet(q.k,q.px,q.py,q.g,cx,cy));
+ // impacts and the Moon
+ IM.forEach(im=>{const q=(t-im.t0)/1.1,pp=PP[im.k];if(q>0&&q<1){const L=70*unit*(1-q),ex=pp.px+Math.cos(im.a)*L,ey=pp.py+Math.sin(im.a)*L;ctx.strokeStyle='rgba(255,220,160,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ex+Math.cos(im.a)*18*unit,ey+Math.sin(im.a)*18*unit);ctx.lineTo(ex,ey);ctx.stroke()}
+  else if(q>=1&&q<1.6){ctx.fillStyle=`rgba(255,230,180,${.8*(1.6-q)/.6})`;ctx.beginPath();ctx.arc(pp.px,pp.py,(4+10*(q-1))*unit,0,TAU);ctx.fill()}});
+ const E=PP[2];
+ if(t>27){const q=(t-27)/1.5;if(q<1){ctx.globalCompositeOperation='lighter';const gs=40*unit*q;ctx.globalAlpha=1-q;ctx.drawImage(SP[2],E.px-gs,E.py-gs,gs*2,gs*2);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1}
+  const ma=t*3.3,mx=E.px+Math.cos(ma)*13*unit,my=E.py+Math.sin(ma)*13*unit*Math.max(.35,ct);ctx.globalAlpha=sm((t-27.5)/1);ctx.fillStyle='#cfcfd6';ctx.beginPath();ctx.arc(mx,my,1.9*unit,0,TAU);ctx.fill();ctx.globalAlpha=1}
+ // comets
+ const ca=sm((t-31)/3);
+ if(ca>.01)COM.forEach(c=>{const M=c.sp*t+c.ph;let En=M;for(let i=0;i<4;i++)En=M+c.e*Math.sin(En);
+  const x=c.a*(Math.cos(En)-c.e),y=c.a*Math.sqrt(1-c.e*c.e)*Math.sin(En),X=x*Math.cos(c.rot)-y*Math.sin(c.rot),Y=x*Math.sin(c.rot)+y*Math.cos(c.rot),px=cx+X*S,py=cy+Y*S*ct;
+  const dx=px-cx,dy=py-cy,dl=Math.hypot(dx,dy)||1,L=Math.min(90*unit,40*unit/(.2+Math.hypot(X,Y)));
+  const g=ctx.createLinearGradient(px,py,px+dx/dl*L,py+dy/dl*L);g.addColorStop(0,`rgba(190,235,255,${.9*ca})`);g.addColorStop(1,'rgba(190,235,255,0)');
+  ctx.strokeStyle=g;ctx.lineWidth=3*unit;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(px+dx/dl*L,py+dy/dl*L);ctx.stroke();
+  ctx.globalCompositeOperation='lighter';ctx.globalAlpha=ca;ctx.drawImage(SP[9],px-6*unit,py-6*unit,12*unit,12*unit);ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1});
+ // labels (today)
+ const la=sm((t-36)/2);
+ if(la>.01){const fs=Math.max(15,Math.min(22,S/20));ctx.font=`700 ${fs}px Caveat,"Segoe Print","Bradley Hand","Comic Sans MS",cursive`;ctx.textAlign='left';ctx.shadowColor='#000';ctx.shadowBlur=6;ctx.fillStyle='#fff';ctx.globalAlpha=la;
+  PP.forEach(q=>ctx.fillText(NM[q.k],q.px+PS[q.k]*unit+4,q.py-PS[q.k]*unit-2));
+  ctx.textAlign='center';ctx.fillText('Sun',cx,cy+S*.05+fs*1.1);
+  ctx.fillText('Asteroid belt',cx+.38*S*Math.cos(-.9),cy+.38*S*ct*Math.sin(-.9)-8);ctx.fillText('Kuiper belt',cx+1.02*S*Math.cos(2.3),cy+1.02*S*ct*Math.sin(2.3)+fs);
+  ctx.shadowBlur=0;ctx.globalAlpha=1}
+ ph.textContent=t<4?'1. A cloud of gas and dust, the solar nebula':t<10?'2. Gravity makes it collapse and spin faster':t<13?'3. A flat disc forms and the Sun ignites':t<20?'4. Dust clumps grow into planets':t<26?'5. Solar wind blows the leftover gas away':t<31?'6. Impacts shape young worlds; the Moon forms':'Today: the Sun, 8 planets, belts and comets';
+ const age=t<13?(t/13)*1:t<20?1+sm((t-13)/7)*2:t<26?3+sm((t-20)/6)*7:t<31?10+sm((t-26)/5)*50:60+sm((t-31)/7)*4510;
+ ag.textContent='Time since formation: '+(age<1000?age.toFixed(0)+' million years':(age/1000).toFixed(1)+' billion years');
+ requestAnimationFrame(frame);
+}
+document.getElementById('replay').addEventListener('click',()=>{elapsed=0;lastFrame=performance.now()});
+document.getElementById('skip').addEventListener('click',()=>{elapsed=38;lastFrame=performance.now()});
+requestAnimationFrame(frame);
+addEventListener('message',e=>{const d=e.data;if(e.source===parent&&d&&d.type==='eyewitness-speed'&&Number.isFinite(d.speed))speed=Math.max(.25,Math.min(2,d.speed))});
+</script>
+</body>
+</html>
