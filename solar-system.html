@@ -18,6 +18,18 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 #hud{color:var(--ink);font-weight:700;font-size:24px;line-height:1.1;text-shadow:0 0 6px #000,0 0 3px #000}
 #hud small{display:block;font-size:18px;opacity:.85}
 #hint{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);text-align:center;color:var(--ink);font-weight:700;font-size:18px;opacity:.7;text-shadow:0 0 6px #000;pointer-events:none}
+@media (max-width: 640px) {
+  html, body { height: 100dvh; }
+  #top { left: max(8px, env(safe-area-inset-left, 0px)); top: calc(env(safe-area-inset-top, 0px) + 7px); }
+  #hud { max-width: 62vw; font-size: clamp(14px, 4vw, 18px); line-height: 1.08; }
+  #hud small { font-size: clamp(11px, 3.1vw, 14px); }
+  #btns { gap: 4px; }
+  #btns button, #replay { padding: 4px 8px; font-size: 11px; }
+  #hint { display: none; }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  #hud small { font-size: 11px; }
+}
 </style>
 </head>
 <body>

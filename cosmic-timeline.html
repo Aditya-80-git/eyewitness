@@ -21,6 +21,12 @@ canvas{display:block;width:100%;height:100%}
 #vol{width:56px;accent-color:#9fc2ff}
 #snd:focus-visible,#vol:focus-visible{outline:2px solid #8fb8ff;outline-offset:2px}
 #replay:focus-visible,#rotate:focus-visible{outline:2px solid #8fb8ff;outline-offset:2px}
+@media (max-width: 640px) {
+  html, body { height: 100dvh; }
+  #replay, #rotate { top: calc(env(safe-area-inset-top, 0px) + 7px); padding: 4px 8px; font-size: 11px; }
+  #rotate { left: 72px; }
+  #audio { right: 6px; bottom: 5px; transform: scale(.84); transform-origin: bottom right; }
+}
 </style>
 </head>
 <body>
