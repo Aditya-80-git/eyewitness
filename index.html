@@ -1096,7 +1096,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 &lt;div id=&quot;hint&quot;&gt;Move your mouse or drag to look around&lt;/div&gt;
 &lt;script&gt;
 const cv=document.getElementById(&#39;c&#39;),ctx=cv.getContext(&#39;2d&#39;),ph=document.getElementById(&#39;ph&#39;),ag=document.getElementById(&#39;ag&#39;);
-let W,H,DPR,unit,t0=performance.now(),speed=1,ptr=false,mx=0,my=0,smx=0,smy=0;
+let W,H,DPR,unit,t0=performance.now(),speed=2,ptr=false,mx=0,my=0,smx=0,smy=0;
 const TAU=Math.PI*2,sm=x=&gt;{x=x&lt;0?0:x&gt;1?1:x;return x*x*(3-2*x)};
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a&gt;&gt;&gt;15,1|a);t=t+Math.imul(t^t&gt;&gt;&gt;7,61|t)^t;return((t^t&gt;&gt;&gt;14)&gt;&gt;&gt;0)/4294967296}}
 const rnd=rng(17);
@@ -1220,7 +1220,7 @@ canvas{display:block;width:100%;height:100%}
 &lt;div id=&quot;top&quot;&gt;&lt;div id=&quot;btns&quot;&gt;&lt;button id=&quot;replay&quot; type=&quot;button&quot;&gt;Replay&lt;/button&gt;&lt;button id=&quot;skip&quot; type=&quot;button&quot;&gt;Skip to today&lt;/button&gt;&lt;/div&gt;&lt;div id=&quot;hud&quot;&gt;&lt;span id=&quot;ph&quot;&gt;&lt;/span&gt;&lt;small id=&quot;ag&quot;&gt;&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;script&gt;
 const cv=document.getElementById(&#39;c&#39;),ctx=cv.getContext(&#39;2d&#39;),ph=document.getElementById(&#39;ph&#39;),ag=document.getElementById(&#39;ag&#39;);
-let W,H,DPR,unit,t0=performance.now(),speed=1;
+let W,H,DPR,unit,t0=performance.now(),speed=2;
 const TAU=Math.PI*2,sm=x=&gt;{x=x&lt;0?0:x&gt;1?1:x;return x*x*(3-2*x)};
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a&gt;&gt;&gt;15,1|a);t=t+Math.imul(t^t&gt;&gt;&gt;7,61|t)^t;return((t^t&gt;&gt;&gt;14)&gt;&gt;&gt;0)/4294967296}}
 const rnd=rng(21);
@@ -1586,7 +1586,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
 &lt;div id=&quot;hint&quot;&gt;Drag to tilt the view. Sizes and distances are scaled for viewing.&lt;/div&gt;
 &lt;script&gt;
 const cv=document.getElementById(&#39;c&#39;),ctx=cv.getContext(&#39;2d&#39;),ph=document.getElementById(&#39;ph&#39;),ag=document.getElementById(&#39;ag&#39;);
-let W,H,DPR,unit,speed=1,elapsed=0,lastFrame=performance.now(),tiltB=1.0;
+let W,H,DPR,unit,speed=2,elapsed=0,lastFrame=performance.now(),tiltB=1.0;
 const TAU=Math.PI*2,sm=x=&gt;{x=x&lt;0?0:x&gt;1?1:x;return x*x*(3-2*x)};
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a&gt;&gt;&gt;15,1|a);t=t+Math.imul(t^t&gt;&gt;&gt;7,61|t)^t;return((t^t&gt;&gt;&gt;14)&gt;&gt;&gt;0)/4294967296}}
 const rnd=rng(3);
@@ -1641,7 +1641,7 @@ function planet(k,px,py,g,sx,sy){
 }
 
 function frame(now){
- const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));
+ const dt=Math.min(.1,Math.max(0,(now-lastFrame)/1000));
  lastFrame=now;elapsed+=dt*speed;const t=elapsed;
  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalCompositeOperation=&#39;source-over&#39;;ctx.globalAlpha=1;ctx.fillStyle=&#39;#000&#39;;ctx.fillRect(0,0,W,H);
  // faint Milky Way band + stars
@@ -1755,7 +1755,7 @@ canvas{display:block;width:100%;height:100%}
 &lt;div id=&quot;top&quot;&gt;&lt;button id=&quot;replay&quot; type=&quot;button&quot;&gt;Replay&lt;/button&gt;&lt;div id=&quot;hud&quot;&gt;&lt;span id=&quot;ph&quot;&gt;&lt;/span&gt;&lt;small id=&quot;ag&quot;&gt;&lt;/small&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;script&gt;
 const cv=document.getElementById(&#39;c&#39;),ctx=cv.getContext(&#39;2d&#39;),ph=document.getElementById(&#39;ph&#39;),ag=document.getElementById(&#39;ag&#39;);
-let W,H,DPR,speed=1,elapsed=0,lastFrame=performance.now();
+let W,H,DPR,speed=2,elapsed=0,lastFrame=performance.now();
 const TAU=Math.PI*2,sm=x=&gt;{x=x&lt;0?0:x&gt;1?1:x;return x*x*(3-2*x)};
 function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a&gt;&gt;&gt;15,1|a);t=t+Math.imul(t^t&gt;&gt;&gt;7,61|t)^t;return((t^t&gt;&gt;&gt;14)&gt;&gt;&gt;0)/4294967296}}
 const rnd=rng(5);
@@ -1800,7 +1800,7 @@ const BG=[];for(let i=0;i&lt;220;i++)BG.push({x:rnd(),y:rnd(),r:rnd()*1.2+.3,p:r
 const HZ=[];const HC=[[110,80,220],[70,110,255],[200,90,170]];for(let i=0;i&lt;40;i++)HZ.push({x:rnd(),y:rnd(),r:.15+rnd()*.25,c:spr(HC[i%3]),p:rnd()*6.28});
 
 function frame(now){
- const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));
+ const dt=Math.min(.1,Math.max(0,(now-lastFrame)/1000));
  lastFrame=now;elapsed+=dt*speed;const t=elapsed;
  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalCompositeOperation=&#39;source-over&#39;;ctx.globalAlpha=1;ctx.fillStyle=&#39;#000&#39;;ctx.fillRect(0,0,W,H);
  const port=H&gt;W*1.05,SW=port?640:1087,SH=port?1087:640,k=Math.min(W/SW,H/SH),ox=(W-SW*k)/2,oy=(H-SH*k)/2;
@@ -1961,7 +1961,7 @@ function drawG(G,cl,t){
 }
 
 function frame(now){
- const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));lastFrame=now;elapsed+=dt*speed;const t=elapsed;
+ const dt=Math.min(.1,Math.max(0,(now-lastFrame)/1000));lastFrame=now;elapsed+=dt*speed;const t=elapsed;
  ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalCompositeOperation=&#39;source-over&#39;;ctx.globalAlpha=1;ctx.fillStyle=&#39;#fff&#39;;ctx.fillRect(0,0,W,H);
  CELLS.forEach((cl,i)=&gt;{
   ctx.save();ctx.beginPath();ctx.rect(cl.x,cl.y,cl.w,cl.h);ctx.clip();
@@ -5630,7 +5630,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       const changed = this.view !== i;
       this.reached = Math.max(this.reached, i);
       this.view = i;
-      const chapterSpeed = (i >= 4 && i <= 10) ? 2 : 1;
+      const chapterSpeed = ['dark-ages', 'first-stars', 'galaxies', 'galaxy-types', 'sun-birth', 'planets', 'solar-system'].includes(ch.id) ? 2 : 1;
       this.setSpeed(chapterSpeed);
       this.tint = cloneTint(ch.tint);
       this.brightTarget = ch.tint.bright;
@@ -5672,7 +5672,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       const loop = (now) => {
         this.raf = requestAnimationFrame(loop);
         if (!this.last) this.last = now;
-        const dt = clamp((now - this.last) / 1000, 0, 0.05);
+        const dt = clamp((now - this.last) / 1000, 0, 0.1);
         this.last = now;
         this.update(dt * this.speed);
         const chapterFrame = byId('chapter-frame');
