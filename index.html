@@ -982,6 +982,40 @@ button { font: inherit; color: inherit; }
   border: 0; background: #000; pointer-events: auto;
 }
 #chapter-frame:not([hidden]) { display: block; }
+/* Compact landscape layout for short emulator/browser viewports. */
+@media (max-height: 700px) and (orientation: landscape) {
+  :root { --dot: 10px; }
+  #app.show-hud .disclaimer, #app.show-controls .disclaimer { display: none; }
+  #controls { top: calc(var(--safe-t) + 5px); right: calc(10px + var(--safe-r)); }
+  #project-speed { top: calc(var(--safe-t) + 48px); right: calc(10px + var(--safe-r)); min-height: 30px; padding: 2px 7px; }
+  #project-speed input { width: 62px; }
+  #timeline { left: calc(12px + var(--safe-l)); right: calc(12px + var(--safe-r)); bottom: calc(var(--safe-b) + 4px); }
+  .tl-readout { display: flex; flex-wrap: nowrap; align-items: center; gap: 4px 8px; margin-bottom: 0; }
+  .tl-readout-label, .tl-ago, .tl-journey, .tl-jump-label { display: none !important; }
+  .tl-age { white-space: nowrap; font-size: .66rem; }
+  .tl-views { flex-wrap: nowrap; gap: 4px; margin-left: auto; }
+  .tl-jump { width: min(30vw, 13rem); max-width: none; min-height: 30px; padding: 3px 20px 3px 8px; font-size: .6rem; }
+  .tl-views button { display: none; }
+  .tl-axiswrap { height: 16px; }
+  .tl-tick:not(:first-child):not(:last-child) b { display: none; }
+  .tl-links { height: 8px; }
+  .tl-track { height: 28px; }
+  .tl-btn { min-height: 34px; }
+  .tl-name, .tl-when { display: none !important; }
+  .scene-caption { top: calc(var(--safe-t) + 48px); width: min(70vw, 42rem); font-size: .8rem; line-height: 1.2; }
+  #event-panel.is-glass-panel {
+    bottom: calc(var(--safe-b) + var(--tl-h) + 5px);
+    width: min(18rem, 34vw); max-width: 18rem; padding: 7px 10px 8px;
+  }
+  #event-panel.is-glass-panel:not(.is-collapsed) {
+    max-height: min(44vh, 280px); overflow-y: auto; overscroll-behavior: contain;
+  }
+  .dock:not(.is-open) { left: auto; right: calc(10px + var(--safe-r)); top: calc(var(--safe-t) + 82px); width: auto; }
+  .dock:not(.is-open) .dock-tab { min-height: 34px; padding: 4px 8px; font-size: .58rem; }
+  .dock:not(.is-open) .dock-toggle { width: 34px; height: 34px; }
+  .dock.is-open { left: 12px; right: 12px; top: calc(var(--safe-t) + 50px); bottom: calc(var(--safe-b) + var(--tl-h) + 6px); width: auto; }
+  .science { left: 12px; right: 12px; top: calc(var(--safe-t) + 48px); bottom: calc(var(--safe-b) + var(--tl-h) + 6px); width: auto; }
+}
 /* Phone layout: keep the chapter art visible and reduce stacked controls. */
 @supports (height: 100dvh) {
   html, body, #app { height: 100dvh; }
@@ -2941,6 +2975,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
     enter() {}
     exit() {}
     resize(w, h) { this.w = w; this.h = h; }
+    contentHeight() { return Math.max(160, this.h - (this.env.compactLandscape ? 96 : 170)); }
     update(dt) { this.t += dt; }
     draw() {}
     seek() {}
@@ -3317,7 +3352,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       if (t > 62) this.enter();
     }
     draw(g) {
-      const t = this.t, cx = this.w / 2, cy = (this.h - 170) * 0.5, R = Math.min(this.w, this.h - 170) * (this.env.mobile ? 0.27 : 0.3);
+      const t = this.t, cx = this.w / 2, cy = (this.contentHeight()) * 0.5, R = Math.min(this.w, this.contentHeight()) * (this.env.mobile ? 0.27 : 0.3);
       g.globalCompositeOperation = 'lighter';
       if (t < 14) {
         const k = smooth(t / 11);
@@ -3411,7 +3446,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       if (this.t > 58) this.enter();
     }
     draw(g) {
-      const t = this.t, cx = this.w / 2, cy = (this.h - 170) / 2, base = Math.min(this.w, this.h - 170) * 0.62;
+      const t = this.t, cx = this.w / 2, cy = (this.contentHeight()) / 2, base = Math.min(this.w, this.contentHeight()) * 0.62;
       const z = lerp(5, 1, smooth((t - 18) / 22)), sc = base * z;
       const X = (x) => cx + x * sc, Y = (y) => cy + y * sc * 0.75;
       g.globalCompositeOperation = 'lighter';
@@ -3463,7 +3498,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       if (t > 64) this.enter();
     }
     draw(g) {
-      const t = this.t, cx = this.w / 2, cy = (this.h - 170) / 2, S = Math.min(this.w, this.h - 170) * 0.42, tilt = 0.42;
+      const t = this.t, cx = this.w / 2, cy = (this.contentHeight()) / 2, S = Math.min(this.w, this.contentHeight()) * 0.42, tilt = 0.42;
       const since = this.ign < 0 ? -1 : t - this.ign, clear = since > 6 ? smooth((since - 6) / 8) : 0;
       g.globalCompositeOperation = 'lighter';
       if (t < 20) glow(g, sprite(120, 60, 60), cx, cy, S * 3.2, 0.14 * (1 - t / 20));
@@ -3528,7 +3563,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       if (t > 68) this.enter();
     }
     draw(g) {
-      const t = this.t, cx = this.w / 2, cy = (this.h - 170) / 2, R = Math.min(this.w * 0.5, (this.h - 170) * 0.5 / 0.5) * 0.92, ry = 0.5;
+      const t = this.t, cx = this.w / 2, cy = (this.contentHeight()) / 2, R = Math.min(this.w * 0.5, (this.contentHeight()) * 0.5 / 0.5) * 0.92, ry = 0.5;
       const X = (a, th) => cx + Math.cos(th) * this.rad(a, R), Y = (a, th) => cy + Math.sin(th) * this.rad(a, R) * ry;
       g.globalCompositeOperation = 'lighter';
       const haze = 1 - smooth((t - 44) / 10);
@@ -3588,8 +3623,13 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
     resize(w, h, dpr, split = false) {
       this.w = w; this.h = h; this.dpr = dpr;
       this.canvas.width = Math.round(w * dpr); this.canvas.height = Math.round(h * dpr);
-      this.uw = !split && w > 900 ? w - 400 : w; // reserve dock space outside side-by-side chapter mode
-      if (this.current) this.current.resize(this.uw, h);
+      const dockOpen = !!document.getElementById('dock')?.classList.contains('is-open');
+      this.uw = !split && !this.env.mobile() && dockOpen && w > 900 ? w - 400 : w; // reserve width only for an open desktop dock
+      if (this.current) {
+        this.current.env.mobile = this.env.mobile();
+        this.current.env.compactLandscape = this.env.compactLandscape();
+        this.current.resize(this.uw, h);
+      }
     },
     activate(id) {
       if (id === this.id) return;
@@ -3599,9 +3639,11 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       this.canvas.style.opacity = '0';
       this.canvas.style.pointerEvents = 'none';
       if (!C) { this.hooks.caption(''); return; }
-      const env = { w: this.uw || this.w, h: this.h, mobile: this.env.mobile(), reduced: this.env.reduced(), hooks: this.hooks };
+      const env = { w: this.uw || this.w, h: this.h, mobile: this.env.mobile(), reduced: this.env.reduced(), compactLandscape: this.env.compactLandscape(), hooks: this.hooks };
       this.current = new C(env);
       this.current.enter();
+      this.current.env.mobile = this.env.mobile();
+      this.current.env.compactLandscape = this.env.compactLandscape();
       this.current.resize(this.uw || this.w, this.h);
       this.canvas.style.pointerEvents = this.current.interactive ? 'auto' : 'none';
       this.canvas.style.touchAction = this.current.interactive ? 'none' : 'auto';
@@ -3828,9 +3870,9 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       }
       if (best) this.select(best.id);
     }
-    cy() { return (this.h - 190) / 2 + 30; }
+    cy() { return this.env.compactLandscape ? this.contentHeight() / 2 + 18 : (this.h - 190) / 2 + 30; }
     W() { return this.w; }   // the manager already hands scenes the width left of the dock
-    rr(a) { return Math.sqrt(a / 52) * Math.min(this.W() * 0.46, (this.h - 220) * 0.5 / 0.62); }
+    rr(a) { const available = this.env.compactLandscape ? this.contentHeight() - 20 : this.h - 220; return Math.sqrt(a / 52) * Math.min(this.W() * 0.46, available * 0.5 / 0.62); }
     update(dt) {
       this.t += dt;
       this.caption(this.mode === 'size' ? 'SIZES to scale · distances NOT to scale (planets spaced evenly) · the Sun is cropped'
@@ -4378,7 +4420,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       this.sciBody.textContent = ''; this.sciBuilt = false;
       this.btnSci.hidden = !ch.science;
       if (this.dock.hidden) return;
-      const mobile = window.matchMedia('(max-width: 768px)').matches;
+      const mobile = window.matchMedia('(max-width: 768px), (pointer: coarse), (max-height: 700px) and (orientation: landscape)').matches;
       this.setTab(hasTool ? 'tool' : 'fig');
       this.toggleDock(!mobile);
     },
@@ -4386,6 +4428,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       const o = open == null ? !this.dock.classList.contains('is-open') : open;
       this.dock.classList.toggle('is-open', o); byId('dock-toggle').setAttribute('aria-expanded', String(o)); byId('dock-toggle').textContent = o ? '–' : '+';
       if (o) this.ensureActive();
+      if (EW.Scenes && EW.Scenes.resize && EW.Scenes.w > 1) EW.Scenes.resize(EW.Scenes.w, EW.Scenes.h, EW.Scenes.dpr);
     },
     setTab(t) {
       this.tab = t;
@@ -4487,8 +4530,9 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
   const byId = (id) => document.getElementById(id);
 
   const mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const mqMobile = window.matchMedia('(max-width: 768px), (pointer: coarse)');
-  const ENV = { reduced: mqReduce.matches, mobile: mqMobile.matches };
+  const mqCompactLandscape = window.matchMedia('(max-height: 700px) and (orientation: landscape)');
+  const mqMobile = window.matchMedia('(max-width: 768px), (pointer: coarse), (max-height: 700px) and (orientation: landscape)');
+  const ENV = { reduced: mqReduce.matches, mobile: mqMobile.matches, compactLandscape: mqCompactLandscape.matches };
 
   const Listeners = {
     list: [],
@@ -5502,7 +5546,7 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
         caption: (t) => UI.setCaption(t),
         fx: (n) => Sound.fx(n),
         solarSelect: (id) => EW.ui.solarSelect(id),
-      }, { mobile: () => ENV.mobile, reduced: () => ENV.reduced });
+      }, { mobile: () => ENV.mobile, reduced: () => ENV.reduced, compactLandscape: () => ENV.compactLandscape });
       this.resizeAll();
       this.tint = cloneTint(EVENTS[0].tint);
       const sp = Number(new URLSearchParams(window.location.search).get('speed'));
@@ -5532,7 +5576,14 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       });
 
       let resizeQueued = false;
+      const syncViewportMode = () => {
+        const wasMobile = ENV.mobile;
+        ENV.mobile = mqMobile.matches;
+        ENV.compactLandscape = mqCompactLandscape.matches;
+        if (ENV.mobile && !wasMobile && this.view >= 0) { UI.setInfoCollapsed(true); EW.ui.toggleDock(false); }
+      };
       const onResize = () => {
+        syncViewportMode();
         if (resizeQueued) return;
         resizeQueued = true;
         requestAnimationFrame(() => { resizeQueued = false; if (!this.disposed) this.resizeAll(); });
@@ -5541,10 +5592,11 @@ addEventListener(&#39;message&#39;,e=&gt;{const d=e.data;if(e.source===parent&am
       Listeners.on(window, 'orientationchange', onResize);
 
       const onReduce = () => { ENV.reduced = mqReduce.matches; };
-      const onMobile = () => { ENV.mobile = mqMobile.matches; };
+      const onMobile = () => { syncViewportMode(); };
       if (mqReduce.addEventListener) {
         Listeners.on(mqReduce, 'change', onReduce);
         Listeners.on(mqMobile, 'change', onMobile);
+        Listeners.on(mqCompactLandscape, 'change', onMobile);
       }
 
       Listeners.on(document, 'visibilitychange', () => (document.hidden ? this.pause() : this.resume()));
